@@ -1,4 +1,4 @@
-const { screen } = require('electron');
+const { screen, BrowserWindow } = require('electron');
 const WebSocket = require('ws');
 const getLocalIPv4 = require('./getLocalIP');
 const os = require('os');
@@ -9,6 +9,7 @@ const ip = getLocalIPv4();
 const MAIN_SERVER = 'ws://' + ip + ':3000';
 
 let computerId;
+let displayWindows = new Map();
 
 async function init() {
   computerId = await machineId();
@@ -51,9 +52,48 @@ function connect() {
 function handleCommand(msg) {
   console.log('📩 Received:', msg);
 
-  if (msg.type === 'TEST') {
-    console.log('🔥 TEST COMMAND:', msg.payload);
+  if (msg.type === 'OPEN_SCREEN') {
+    console.log("open screen")
+    openDisplayWindow(msg.displayId, msg.url)
   }
 }
+
+const openDisplayWindow = (displayId, url) => {
+  const displays = screen.getAllDisplays();
+  const display = displays.find(d => d.id == displayId);
+
+  if (!display) {
+    console.log("Display not found:", displayId);
+    return;
+  }
+
+  let win = displayWindows.get(displayId);
+
+  // If the window exists → directly replace the URL
+  if (win && !win.isDestroyed()) {
+    console.log("Reload display window:", displayId);
+    win.loadURL(url);
+    return;
+  }
+
+  // Not found → create new
+  console.log("Create display window:", displayId);
+
+  win = new BrowserWindow({
+    x: display.bounds.x,
+    y: display.bounds.y,
+    fullscreen: true,
+    frame: false
+  });
+
+  win.loadURL(url);
+
+  displayWindows.set(displayId, win);
+
+  win.on('closed', () => {
+    displayWindows.delete(displayId);
+  });
+};
+
 
 init();
