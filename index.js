@@ -1,8 +1,20 @@
+const { screen } = require('electron');
 const WebSocket = require('ws');
 const getLocalIPv4 = require('./getLocalIP');
+const os = require('os');
+const { machineId } = require('node-machine-id');
 
+const computerName = os.hostname();
 const ip = getLocalIPv4();
 const MAIN_SERVER = 'ws://' + ip + ':3000';
+
+let computerId;
+
+async function init() {
+  computerId = await machineId();
+
+  connect(); 
+}
 
 function connect() {
   console.log('Connecting to main app...');
@@ -11,10 +23,13 @@ function connect() {
 
   ws.on('open', () => {
     console.log('✅ Connected to main app');
+    const displays = screen.getAllDisplays();
 
     ws.send(JSON.stringify({
       type: 'REGISTER',
-      deviceId: 'player-001'
+      deviceId: computerId,
+      deviceName: computerName,
+      displays: displays  
     }));
   });
 
@@ -41,4 +56,4 @@ function handleCommand(msg) {
   }
 }
 
-connect();
+init();
