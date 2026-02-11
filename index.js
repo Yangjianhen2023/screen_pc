@@ -108,4 +108,8 @@ app.whenReady().then(() => {
   tray.setContextMenu(contextMenu)
 })
 
+app.on('window-all-closed', (e) => {
+  e.preventDefault()
+})
+
 init();
