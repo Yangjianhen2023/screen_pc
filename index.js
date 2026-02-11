@@ -1,8 +1,9 @@
-const { screen, BrowserWindow } = require('electron');
+const { screen, BrowserWindow, app, Tray, Menu } = require('electron');
 const WebSocket = require('ws');
 const getLocalIPv4 = require('./getLocalIP');
 const os = require('os');
 const { machineId } = require('node-machine-id');
+const path = require('path')
 
 const computerName = os.hostname();
 const ip = getLocalIPv4();
@@ -10,6 +11,7 @@ const MAIN_SERVER = 'ws://' + ip + ':3000';
 
 let computerId;
 let displayWindows = new Map();
+let tray = null
 
 async function init() {
   computerId = await machineId();
@@ -95,5 +97,15 @@ const openDisplayWindow = (displayId, url) => {
   });
 };
 
+app.whenReady().then(() => {
+  tray = new Tray(path.join(__dirname, 'fire.png'))
+
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'Quit', click: () => app.quit() }
+  ])
+
+  tray.setToolTip('Fire Alarm Display')
+  tray.setContextMenu(contextMenu)
+})
 
 init();
