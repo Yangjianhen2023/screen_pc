@@ -4,6 +4,10 @@ const getLocalIPv4 = require('./getLocalIP');
 const os = require('os');
 const { machineId } = require('node-machine-id');
 const path = require('path')
+let log = require('electron-log');
+
+log.transports.file.resolvePath = () => __dirname + '/logs/log.log';
+log.transports.file.level = 'info';
 
 const computerName = os.hostname();
 const ip = getLocalIPv4();
@@ -23,12 +27,12 @@ async function init() {
 }
 
 function connect() {
-  console.log('Connecting to main app...');
+  log.log('Connecting to main app...');
 
   ws = new WebSocket(MAIN_SERVER);
 
   ws.on('open', () => {
-    console.log('✅ Connected to main app');
+    log.info('✅ Connected to main app');
     const displays = screen.getAllDisplays();
 
     ws.send(JSON.stringify({
@@ -45,20 +49,20 @@ function connect() {
   });
 
   ws.on('close', () => {
-    console.log('❌ Disconnected, retrying...');
+    log.info('❌ Disconnected, retrying...');
     setTimeout(connect, 3000);
   });
 
   ws.on('error', (err) => {
-    console.log('Socket error:', err.message);
+    log.info('Socket error:', err.message);
   });
 }
 
 function handleCommand(msg) {
-  console.log('📩 Received:', msg);
+  log.info('📩 Received:', msg);
 
   if (msg.type === 'OPEN_SCREEN') {
-    console.log("open screen")
+    log.info("open screen")
     openDisplayWindow(msg.displayId, msg.url)
   }
 }
@@ -68,7 +72,7 @@ const openDisplayWindow = (displayId, url) => {
   const display = displays.find(d => d.id == displayId);
 
   if (!display) {
-    console.log("Display not found:", displayId);
+    log.info("Display not found:", displayId);
     return;
   }
 
@@ -76,7 +80,7 @@ const openDisplayWindow = (displayId, url) => {
 
   // If the window exists → directly replace the URL
   if (win && !win.isDestroyed()) {
-    console.log("Reload display window:", displayId);
+    log.info("Reload display window:", displayId);
     win.loadURL(url);
     displayUrlMap.set(displayId, url);
 
@@ -88,7 +92,7 @@ const openDisplayWindow = (displayId, url) => {
   }
 
   // Not found → create new
-  console.log("Create display window:", displayId);
+  log.info("Create display window:", displayId);
 
   win = new BrowserWindow({
     x: display.bounds.x,
