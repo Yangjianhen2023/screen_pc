@@ -103,6 +103,30 @@ const openDisplayWindow = (displayId, url) => {
 
   win.loadURL(url);
 
+  const memoryMonitor = setInterval(async () => {
+
+    if (win.isDestroyed()) {
+      clearInterval(memoryMonitor);
+      return;
+    }
+
+    try {
+      const mem = await process.getProcessMemoryInfo();
+
+      const memoryMB = Math.round(mem.private / 1024);
+      log.info(`Window ${win.id} Memory: ${memoryMB} MB`);
+
+      if (memoryMB > 400) {
+        log.info("Memory usage too high, refresh command executed");
+        win.webContents.reloadIgnoringCache()
+      }
+
+    } catch (err) {
+      log.error("Memory check error:", err);
+    }
+
+  }, 3000);
+
   displayWindows.set(displayId, win);
   displayUrlMap.set(displayId, url);  
 
@@ -118,6 +142,15 @@ const openDisplayWindow = (displayId, url) => {
       type: 'OPEN_SCREEN_RETURN',
       remoteDisplayUrlMap: Object.fromEntries(displayUrlMap)
     }));
+
+  });
+
+  win.webContents.on('unresponsive', () => {
+    log.info(`Window ${win.id} The page is unresponsive (frozen)`);
+  });
+
+  win.webContents.on('responsive', () => {
+    log.info(`Window ${win.id} Recovery response`);
   });
 };
 
