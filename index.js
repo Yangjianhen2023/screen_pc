@@ -7,11 +7,14 @@ const path = require('path')
 
 const computerName = os.hostname();
 const ip = getLocalIPv4();
+// const MAIN_SERVER = 'ws://192.168.50.10:3000';
 const MAIN_SERVER = 'ws://' + ip + ':3000';
 
 let computerId;
 let displayWindows = new Map();
+let displayUrlMap = new Map();
 let tray = null
+let ws
 
 async function init() {
   computerId = await machineId();
@@ -22,7 +25,7 @@ async function init() {
 function connect() {
   console.log('Connecting to main app...');
 
-  const ws = new WebSocket(MAIN_SERVER);
+  ws = new WebSocket(MAIN_SERVER);
 
   ws.on('open', () => {
     console.log('✅ Connected to main app');
@@ -75,6 +78,12 @@ const openDisplayWindow = (displayId, url) => {
   if (win && !win.isDestroyed()) {
     console.log("Reload display window:", displayId);
     win.loadURL(url);
+    displayUrlMap.set(displayId, url);
+
+    ws.send(JSON.stringify({
+      type: 'OPEN_SCREEN_RETURN',
+      remoteDisplayUrlMap: Object.fromEntries(displayUrlMap)
+    }));
     return;
   }
 
@@ -91,9 +100,20 @@ const openDisplayWindow = (displayId, url) => {
   win.loadURL(url);
 
   displayWindows.set(displayId, win);
+  displayUrlMap.set(displayId, url);  
+
+  ws.send(JSON.stringify({
+    type: 'OPEN_SCREEN_RETURN',
+    remoteDisplayUrlMap: Object.fromEntries(displayUrlMap)
+  }));
 
   win.on('closed', () => {
     displayWindows.delete(displayId);
+    displayUrlMap.delete(displayId);
+    ws.send(JSON.stringify({
+      type: 'OPEN_SCREEN_RETURN',
+      remoteDisplayUrlMap: Object.fromEntries(displayUrlMap)
+    }));
   });
 };
 
