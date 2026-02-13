@@ -5,6 +5,11 @@ const os = require('os');
 const { machineId } = require('node-machine-id');
 const path = require('path')
 let log = require('electron-log');
+const isDev = !app.isPackaged;
+
+const logsPath = isDev
+  ? log.transports.file.resolvePath = () => __dirname + '/logs/log.log'
+  : log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs/main.log');
 
 log.transports.file.resolvePath = () => __dirname + '/logs/log.log';
 log.transports.file.level = 'info';
