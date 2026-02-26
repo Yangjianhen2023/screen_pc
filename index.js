@@ -11,7 +11,6 @@ const logsPath = isDev
   ? log.transports.file.resolvePath = () => __dirname + '/logs/log.log'
   : log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs/main.log');
 
-log.transports.file.resolvePath = () => __dirname + '/logs/log.log';
 log.transports.file.level = 'info';
 
 const computerName = os.hostname();
@@ -69,6 +68,11 @@ function handleCommand(msg) {
   if (msg.type === 'OPEN_SCREEN') {
     log.info("open screen")
     openDisplayWindow(msg.displayId, msg.url)
+  }
+
+  if (msg.type === 'LOGIN_WEB') {
+    log.info("login web")
+    loginWeb(msg.displayId, msg.acc, msg.password)
   }
 }
 
@@ -157,6 +161,39 @@ const openDisplayWindow = (displayId, url) => {
   win.webContents.on('responsive', () => {
     log.info(`Window ${win.id} Recovery response`);
   });
+};
+
+const loginWeb = (displayId, acc, password) => {
+  console.log(displayId, acc, password)
+  const displays = screen.getAllDisplays();
+  const display = displays.find(d => d.id == displayId);
+
+  if (!display) {
+    log.info("Display not found:", displayId);
+    return;
+  }
+
+  let win = displayWindows.get(displayId);
+
+  // Injecting JavaScript code into a web form
+  win.webContents.executeJavaScript(`
+    (function() {
+      // Try common username/password input fields and login buttons.
+      const userInput = document.querySelector(
+        'input[type="text"], input[type="email"], input[name*="user"], input[id*="user"]'
+      );
+      const passInput = document.querySelector(
+        'input[type="password"], input[name*="password"], input[id*="pass"]'
+      );
+      const loginBtn = document.querySelector(
+        'button[type="submit"], input[type="submit"], button, input.login-btn'
+      );
+
+      if(userInput) userInput.value = ${JSON.stringify(acc)};
+      if(passInput) passInput.value = ${JSON.stringify(password)};
+      if(loginBtn) loginBtn.click();
+    })();
+  `);
 };
 
 app.whenReady().then(() => {
