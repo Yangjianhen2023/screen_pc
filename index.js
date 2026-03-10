@@ -1,4 +1,4 @@
-const { screen, BrowserWindow, app, Tray, Menu } = require('electron');
+const { screen, BrowserWindow, app, Tray, Menu, session } = require('electron');
 const WebSocket = require('ws');
 const getLocalIPv4 = require('./getLocalIP');
 const os = require('os');
@@ -67,16 +67,41 @@ function handleCommand(msg) {
 
   if (msg.type === 'OPEN_SCREEN') {
     log.info("open screen")
-    openDisplayWindow(msg.displayId, msg.url)
+    openDisplayWindow(msg.displayId, msg.url, msg.ses)
   }
 
   if (msg.type === 'LOGIN_WEB') {
     log.info("login web")
     loginWeb(msg.displayId, msg.acc, msg.password)
   }
+
+  if (msg.type === 'OTP_LOGIN') {
+    log.info("otp login")
+    otpLogin()
+  }
+
+  if (msg.type === 'CLOSE_SCREEN') {
+    log.info("close screen")
+    closeDisplayWindow(msg.displayId, msg.url, msg.returnDisplayId)
+  }
 }
 
-const openDisplayWindow = (displayId, url) => {
+const openDisplayWindow = async (displayId, url, token) => {
+  const ses = session.defaultSession;
+
+  for (const c of token) {
+    await ses.cookies.set({
+      url: url,
+      name: c.name,
+      value: c.value,
+      domain: c.domain,
+      path: c.path,
+      secure: c.secure,
+      httpOnly: c.httpOnly,
+      sameSite: c.sameSite,
+      expirationDate: c.exiprationDate
+    });
+  }
   const displays = screen.getAllDisplays();
   const display = displays.find(d => d.id == displayId);
 
@@ -163,6 +188,27 @@ const openDisplayWindow = (displayId, url) => {
   });
 };
 
+const closeDisplayWindow = async (displayId, url, returnDisplayId) => {
+  const displays = screen.getAllDisplays();
+  const display = displays.find(d => d.id == displayId);
+
+  if (!display) {
+    log.info("Display not found:", displayId);
+    return;
+  }
+
+  let win = displayWindows.get(displayId);
+  const cookies = await session.defaultSession.cookies.get({ url });
+
+  ws.send(JSON.stringify({
+    type: 'CLOSE_SCREEN_SESSION_RETURN',
+    ses: cookies,
+    url: url,
+    displayId: returnDisplayId
+  }));
+  win.close();
+} 
+
 const loginWeb = (displayId, acc, password) => {
   console.log(displayId, acc, password)
   const displays = screen.getAllDisplays();
@@ -195,6 +241,40 @@ const loginWeb = (displayId, acc, password) => {
     })();
   `);
 };
+
+const otpLogin = (displayId, otp) => {
+  const displays = screen.getAllDisplays();
+  const display = displays.find(d => d.id == displayId);
+
+  if (!display) {
+    log.info("Display not found:", displayId);
+    return;
+  }
+
+  let win = displayWindows.get(displayId);
+  
+  // Injecting JavaScript code into a web form
+  win.webContents.executeJavaScript(`
+    (function() {
+
+      const otpInput = document.querySelector('input[name="otp_attempt"]');
+      const submitBtn = document.querySelector(
+        'button[type="submit"], input[type="submit"], button'
+      );
+
+      if (otpInput) {
+        otpInput.value = ${JSON.stringify(otp)};
+        otpInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      if (submitBtn) {
+        submitBtn.click();
+      }
+
+    })();
+  `);
+}
+
 
 app.whenReady().then(() => {
   tray = new Tray(path.join(__dirname, 'fire.png'))
