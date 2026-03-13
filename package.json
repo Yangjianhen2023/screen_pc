@@ -15,13 +15,16 @@
       "**/*"
     ],
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "fire.png"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "fire.png"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "fire.png"
     }
   },
   "keywords": [],
