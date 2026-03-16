@@ -231,13 +231,21 @@ const loginWeb = (displayId, acc, password) => {
       const passInput = document.querySelector(
         'input[type="password"], input[name*="password"], input[id*="pass"]'
       );
-      const loginBtn = document.querySelector(
-        'button[type="submit"], input[type="submit"], button, input.login-btn'
-      );
+      const loginBtn = Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"], button'))
+        .find(btn => {
+          const text = btn.innerText || btn.value || "";
+          return /sign in|log in|login/i.test(text.trim());
+        });
 
-      if(userInput) userInput.value = ${JSON.stringify(acc)};
-      if(passInput) passInput.value = ${JSON.stringify(password)};
-      if(loginBtn) loginBtn.click();
+      function setNativeValue(element, value) {
+        const valueSetter = Object.getOwnPropertyDescriptor(element.__proto__, 'value').set;
+        valueSetter.call(element, value);
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      if (userInput) setNativeValue(userInput, ${JSON.stringify(acc)});
+      if (passInput) setNativeValue(passInput, ${JSON.stringify(password)});
+      if (loginBtn) loginBtn.click();
     })();
   `);
 };
