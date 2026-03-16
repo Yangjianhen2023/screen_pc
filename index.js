@@ -220,7 +220,12 @@ const loginWeb = (displayId, acc, password) => {
   }
 
   let win = displayWindows.get(displayId);
-
+  
+  if (!win) {
+    log.info("Win not found");
+    return;
+  }
+  
   // Injecting JavaScript code into a web form
   win.webContents.executeJavaScript(`
     (function() {
