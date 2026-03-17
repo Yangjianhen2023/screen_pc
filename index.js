@@ -15,7 +15,7 @@ log.transports.file.level = 'info';
 
 const computerName = os.hostname();
 const ip = getLocalIPv4();
-const MAIN_SERVER = 'ws://192.168.50.10:3000';
+const MAIN_SERVER = 'ws://192.168.1.100:3000'; //Deploy
 // const MAIN_SERVER = 'ws://' + ip + ':3000';
 
 let computerId;
