@@ -75,10 +75,10 @@ function handleCommand(msg) {
     loginWeb(msg.displayId, msg.acc, msg.password)
   }
 
-  if (msg.type === 'OTP_LOGIN') {
-    log.info("otp login")
-    otpLogin()
-  }
+  // if (msg.type === 'OTP_LOGIN') {
+  //   log.info("otp login")
+  //   otpLogin()
+  // }
 
   if (msg.type === 'CLOSE_SCREEN') {
     log.info("close screen")
@@ -172,10 +172,13 @@ const openDisplayWindow = async (displayId, url, token) => {
   win.on('closed', () => {
     displayWindows.delete(displayId);
     displayUrlMap.delete(displayId);
-    ws.send(JSON.stringify({
-      type: 'OPEN_SCREEN_RETURN',
-      remoteDisplayUrlMap: Object.fromEntries(displayUrlMap)
-    }));
+    
+    ws.on('open', () => {
+      ws.send(JSON.stringify({
+        type: 'OPEN_SCREEN_RETURN',
+        remoteDisplayUrlMap: Object.fromEntries(displayUrlMap)
+      }));
+    });
 
   });
 
@@ -255,38 +258,38 @@ const loginWeb = (displayId, acc, password) => {
   `);
 };
 
-const otpLogin = (displayId, otp) => {
-  const displays = screen.getAllDisplays();
-  const display = displays.find(d => d.id == displayId);
+// const otpLogin = (displayId, otp) => {
+//   const displays = screen.getAllDisplays();
+//   const display = displays.find(d => d.id == displayId);
 
-  if (!display) {
-    log.info("Display not found:", displayId);
-    return;
-  }
+//   if (!display) {
+//     log.info("Display not found:", displayId);
+//     return;
+//   }
 
-  let win = displayWindows.get(displayId);
+//   let win = displayWindows.get(displayId);
   
-  // Injecting JavaScript code into a web form
-  win.webContents.executeJavaScript(`
-    (function() {
+//   // Injecting JavaScript code into a web form
+//   win.webContents.executeJavaScript(`
+//     (function() {
 
-      const otpInput = document.querySelector('input[name="otp_attempt"]');
-      const submitBtn = document.querySelector(
-        'button[type="submit"], input[type="submit"], button'
-      );
+//       const otpInput = document.querySelector('input[name="otp_attempt"]');
+//       const submitBtn = document.querySelector(
+//         'button[type="submit"], input[type="submit"], button'
+//       );
 
-      if (otpInput) {
-        otpInput.value = ${JSON.stringify(otp)};
-        otpInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
+//       if (otpInput) {
+//         otpInput.value = ${JSON.stringify(otp)};
+//         otpInput.dispatchEvent(new Event('input', { bubbles: true }));
+//       }
 
-      if (submitBtn) {
-        submitBtn.click();
-      }
+//       if (submitBtn) {
+//         submitBtn.click();
+//       }
 
-    })();
-  `);
-}
+//     })();
+//   `);
+// }
 
 
 app.whenReady().then(() => {
